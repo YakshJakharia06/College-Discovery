@@ -119,24 +119,20 @@ async function main() {
 	const targetColleges = process.argv.slice(2);
 
 	if (targetColleges.length === 0) {
-		console.log("\n❌ Please provide at least one college name.");
-		console.log(
-			'Example: npx ts-node src/scripts/sync-colleges.ts "COEP Pune" "VJTI Mumbai"\n',
-		);
+		console.log("\nPlease provide at least one college name.");
 		process.exit(1);
 	}
 
 	console.log(
-		`\n🚀 Starting internet extraction for ${targetColleges.length} college(s)...\n`,
+		`\nStarting internet extraction for ${targetColleges.length} college(s)...\n`,
 	);
 
 	for (const collegeName of targetColleges) {
 		try {
-			console.log(`🔍 Querying live web data for: "${collegeName}"...`);
+			console.log(`Querying live web data for: "${collegeName}"...`);
 			const searchResults = await searchLiveWeb(collegeName);
 
-			console.log(`🤖 Parsing extracted content into structured JSON...`);
-			const liveData = await parseWebDataWithAI(collegeName, searchResults);
+			const liveData = await parseWebDataWithGroq(collegeName, searchResults);
 
 			const slug = slugify(liveData.name || collegeName);
 

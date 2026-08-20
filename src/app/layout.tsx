@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Navbar from "@/components/ui/Navbar";
+import ConsoleViewer from "@/components/ConsoleViewer";
 
 export const metadata: Metadata = {
   title: "CollegeFind — Find the right college for your future",
@@ -13,6 +14,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen bg-gray-50 text-gray-900 antialiased">
         <Navbar />
         <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
+        <ConsoleViewer />
       </body>
     </html>
   );
