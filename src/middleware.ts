@@ -1,31 +1,36 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-// This middleware is UX-only: it redirects logged-out visitors away from
-// /saved before the page even renders, so they're not shown a flash of a
-// protected page. It does NOT perform real authorization — it only checks
-// whether a "session" cookie exists, not whether it's valid.
-//
-// The actual security check happens server-side in every API route and
-// Server Component via getAuthUserId(), which verifies the JWT signature.
-// Never rely on this middleware alone for protection.
-
-const PROTECTED_PATHS = ["/saved"];
+const isDev = process.env.NODE_ENV !== "production";
 
 export function middleware(request: NextRequest) {
-  const isProtected = PROTECTED_PATHS.some((p) => request.nextUrl.pathname.startsWith(p));
-  if (!isProtected) return NextResponse.next();
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
 
-  const hasSessionCookie = request.cookies.has("session");
-  if (!hasSessionCookie) {
-    const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("redirectTo", request.nextUrl.pathname);
-    return NextResponse.redirect(loginUrl);
-  }
+  const csp = [
+    "default-src 'self'",
+    isDev
+      ? `script-src 'self' 'nonce-${nonce}' 'unsafe-eval'`
+      : `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: https:",
+    "font-src 'self'",
+    "connect-src 'self' https:",
+    "frame-ancestors 'none'",
+  ].join("; ");
 
-  return NextResponse.next();
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("Content-Security-Policy", csp);
+
+  const response = NextResponse.next({
+    request: { headers: requestHeaders },
+  });
+  response.headers.set("Content-Security-Policy", csp);
+
+  return response;
 }
 
 export const config = {
-  matcher: ["/saved/:path*"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico).*)",
+  ],
 };
