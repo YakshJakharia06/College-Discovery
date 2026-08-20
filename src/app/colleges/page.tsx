@@ -34,6 +34,8 @@ export default async function CollegesPage({ searchParams }: { searchParams: Sea
       OR: [
         { name: { contains: search, mode: "insensitive" } },
         { city: { contains: search, mode: "insensitive" } },
+        { state: { contains: search, mode: "insensitive" } },
+        { description: { contains: search, mode: "insensitive" } },
       ],
     });
   }
