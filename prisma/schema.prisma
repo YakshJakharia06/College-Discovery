@@ -1,0 +1,97 @@
+// Prisma schema for the College Discovery Platform.
+// Run `npx prisma migrate dev --name init` after filling in DATABASE_URL.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  reviews        Review[]
+  savedColleges  SavedCollege[]
+
+  @@index([email])
+}
+
+model College {
+  id                     String   @id @default(cuid())
+  name                   String
+  slug                   String   @unique
+  city                   String
+  state                  String
+  fees                   Int // annual fees in INR, stored as integer (paise-free, whole rupees)
+  rating                 Float    @default(0) // 0–5, average of reviews (denormalized for fast sort/filter)
+  description            String
+  averagePackage         Int      @default(0) // in INR
+  highestPackage         Int      @default(0) // in INR
+  placementPercentage    Float    @default(0) // 0–100
+  topRecruiters          String[] @default([])
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  courses       Course[]
+  reviews       Review[]
+  savedBy       SavedCollege[]
+
+  // These indexes back the search/filter/sort requirements in Feature 1.
+  @@index([state])
+  @@index([city])
+  @@index([rating])
+  @@index([fees])
+  @@index([name])
+}
+
+model Course {
+  id        String  @id @default(cuid())
+  collegeId String
+  name      String
+  duration  String // e.g. "4 years"
+  fees      Int
+
+  college College @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+
+  @@index([collegeId])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  collegeId String
+  userId    String
+  rating    Int // 1–5, enforced by Zod at the API layer
+  comment   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  college College @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([collegeId])
+  @@index([userId])
+}
+
+model SavedCollege {
+  id        String   @id @default(cuid())
+  userId    String
+  collegeId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  college College @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+
+  // Prevents duplicate saves for the same user+college pair at the DB level —
+  // this is the authoritative guard, not just a frontend check.
+  @@unique([userId, collegeId])
+  @@index([userId])
+  @@index([collegeId])
+}
